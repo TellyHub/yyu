@@ -2099,7 +2099,9 @@ def sanitize_filename(s, restricted=False, is_id=False):
     def replace_insane(char):
         if restricted and char in ACCENT_CHARS:
             return ACCENT_CHARS[char]
-        if char == '?' or ord(char) < 32 or ord(char) == 127:
+        elif not restricted and char == '\n':
+            return ' '
+        elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
             return '' if restricted else '\''
@@ -2350,29 +2352,35 @@ def formatSeconds(secs, delim=':', msec=False):
     return '%s.%03d' % (ret, secs % 1) if msec else ret
 
 
-def make_HTTPS_handler(params, **kwargs):
-    opts_no_check_certificate = params.get('nocheckcertificate', False)
-    if hasattr(ssl, 'create_default_context'):  # Python >= 3.4 or 2.7.9
-        context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-        if opts_no_check_certificate:
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
+def _ssl_load_windows_store_certs(ssl_context, storename):
+    # Code adapted from _load_windows_store_certs in https://github.com/python/cpython/blob/main/Lib/ssl.py
+    try:
+        certs = [cert for cert, encoding, trust in ssl.enum_certificates(storename)
+                 if encoding == 'x509_asn' and (
+                     trust is True or ssl.Purpose.SERVER_AUTH.oid in trust)]
+    except PermissionError:
+        return
+    for cert in certs:
         try:
-            return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
-        except TypeError:
-            # Python 2.7.8
-            # (create_default_context present but HTTPSHandler has no context=)
+            ssl_context.load_verify_locations(cadata=cert)
+        except ssl.SSLError:
             pass
 
-    if sys.version_info < (3, 2):
-        return YoutubeDLHTTPSHandler(params, **kwargs)
-    else:  # Python < 3.4
-        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-        context.verify_mode = (ssl.CERT_NONE
-                               if opts_no_check_certificate
-                               else ssl.CERT_REQUIRED)
+
+def make_HTTPS_handler(params, **kwargs):
+    opts_check_certificate = not params.get('nocheckcertificate')
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = opts_check_certificate
+    context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
+    if opts_check_certificate:
+        # Work around the issue in load_default_certs when there are bad certificates. See:
+        # https://github.com/yt-dlp/yt-dlp/issues/1060,
+        # https://bugs.python.org/issue35665, https://bugs.python.org/issue4531
+        if sys.platform == 'win32':
+            for storename in ('CA', 'ROOT'):
+                _ssl_load_windows_store_certs(context, storename)
         context.set_default_verify_paths()
-        return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
+    return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
 def bug_reports_message(before=';'):
@@ -4474,12 +4482,12 @@ OUTTMPL_TYPES = {
 STR_FORMAT_RE_TMPL = r'''(?x)
     (?<!%)(?P<prefix>(?:%%)*)
     %
-    (?P<has_key>\((?P<key>{0})\))?  # mapping key
+    (?P<has_key>\((?P<key>{0})\))?
     (?P<format>
-        (?:[#0\-+ ]+)?  # conversion flags (optional)
-        (?:\d+)?  # minimum field width (optional)
-        (?:\.\d+)?  # precision (optional)
-        [hlL]?  # length modifier (optional)
+        (?P<conversion>[#0\-+ ]+)?
+        (?P<min_width>\d+)?
+        (?P<precision>\.\d+)?
+        (?P<len_mod>[hlL])?  # unused in python
         {1}  # conversion type
     )
 '''
@@ -6270,7 +6278,7 @@ def get_executable_path():
 
 def load_plugins(name, suffix, namespace):
     plugin_info = [None]
-    classes = []
+    classes = {}
     try:
         plugin_info = imp.find_module(
             name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
@@ -6281,8 +6289,7 @@ def load_plugins(name, suffix, namespace):
             if not name.endswith(suffix):
                 continue
             klass = getattr(plugins, name)
-            classes.append(klass)
-            namespace[name] = klass
+            classes[name] = namespace[name] = klass
     except ImportError:
         pass
     finally:
@@ -6409,3 +6416,26 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     signature_b64 = base64.b64encode(h.digest())
     token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
     return token
+
+
+def supports_terminal_sequences(stream):
+    if compat_os_name == 'nt':
+        if get_windows_version() < (10, ):
+            return False
+    elif not os.getenv('TERM'):
+        return False
+    try:
+        return stream.isatty()
+    except BaseException:
+        return False
+
+
+TERMINAL_SEQUENCES = {
+    'DOWN': '\n',
+    'UP': '\x1b[A',
+    'ERASE_LINE': '\x1b[K',
+    'RED': '\033[0;31m',
+    'YELLOW': '\033[0;33m',
+    'BLUE': '\033[0;34m',
+    'RESET_STYLE': '\033[0m',
+}

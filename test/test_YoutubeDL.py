@@ -649,10 +649,11 @@ class TestYoutubeDL(unittest.TestCase):
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
         'title4': 'foo "bar" test',
-        'title5': 'áéí',
+        'title5': 'áéí 𝐀',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
+        'playlist_autonumber': 2,
         '_last_playlist_index': 100,
         'n_entries': 10,
         'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
@@ -690,6 +691,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
         test('%(playlist_index)s', '001')
+        test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
         test('%(autonumber)s', '001', autonumber_size=3)
@@ -765,10 +767,15 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Custom type casting
         test('%(formats.:.id)l', 'id1, id2, id3')
+        test('%(formats.:.id)#l', ('id1\nid2\nid3', 'id1 id2 id3'))
         test('%(ext)l', 'mp4')
         test('%(formats.:.id) 15l', '  id1, id2, id3')
         test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
         test('%(title5).3B', 'á')
+        test('%(title5)U', 'áéí 𝐀')
+        test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
+        test('%(title5)+U', 'áéí A')
+        test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
         else:
@@ -1000,6 +1007,7 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '2-4'}, [2, 3, 4])
         test_selection({'playlist_items': '2,4'}, [2, 4])
         test_selection({'playlist_items': '10'}, [])
+        test_selection({'playlist_items': '0'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
         test_selection({'playlist_items': '2-4,3-4,3'}, [2, 3, 4])

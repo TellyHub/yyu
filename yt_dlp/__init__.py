@@ -20,6 +20,7 @@ from .compat import (
     compat_getpass,
     compat_shlex_quote,
     workaround_optparse_bug9161,
+    windows_enable_vt_mode
 )
 from .cookies import SUPPORTED_BROWSERS
 from .utils import (
@@ -66,6 +67,7 @@ def _real_main(argv=None):
         codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
 
     workaround_optparse_bug9161()
+    windows_enable_vt_mode()
 
     setproctitle('yt-dlp')
 
@@ -418,7 +420,7 @@ def _real_main(argv=None):
         opts.sponskrub = False
 
     # PostProcessors
-    postprocessors = []
+    postprocessors = list(opts.add_postprocessors)
     if sponsorblock_query:
         postprocessors.append({
             'key': 'SponsorBlock',
@@ -513,6 +515,7 @@ def _real_main(argv=None):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
         })
+    # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -535,6 +538,7 @@ def _real_main(argv=None):
         })
         if not already_have_thumbnail:
             opts.writethumbnail = True
+            opts.outtmpl['pl_thumbnail'] = ''
     if opts.split_chapters:
         postprocessors.append({
             'key': 'FFmpegSplitChapters',
@@ -631,7 +635,7 @@ def _real_main(argv=None):
         'noresizebuffer': opts.noresizebuffer,
         'http_chunk_size': opts.http_chunk_size,
         'continuedl': opts.continue_dl,
-        'noprogress': opts.noprogress,
+        'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,

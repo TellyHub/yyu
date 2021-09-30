@@ -507,6 +507,7 @@ from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
+from .gettr import GettrIE
 from .gfycat import GfycatIE
 from .giantbomb import GiantBombIE
 from .giga import GigaIE
@@ -833,6 +834,7 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
+from .n1 import N1InfoIIE, N1InfoAssetIE
 from .nationalgeographic import (
     NationalGeographicVideoIE,
     NationalGeographicTVIE,
@@ -1204,7 +1206,10 @@ from .rtve import RTVEALaCartaIE, RTVELiveIE, RTVEInfantilIE, RTVELiveIE, RTVETe
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
-from .rumble import RumbleEmbedIE
+from .rumble import (
+    RumbleEmbedIE,
+    RumbleChannelIE,
+)
 from .rutube import (
     RutubeIE,
     RutubeChannelIE,
@@ -1600,6 +1605,7 @@ from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veehd import VeeHDIE
+from .veo import VeoIE
 from .veoh import VeohIE
 from .vesti import VestiIE
 from .vevo import (
@@ -1634,11 +1640,6 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vidme import (
-    VidmeIE,
-    VidmeUserIE,
-    VidmeUserLikesIE,
-)
 from .vier import VierIE, VierVideosIE
 from .viewlift import (
     ViewLiftIE,
