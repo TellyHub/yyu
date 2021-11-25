@@ -750,6 +750,11 @@ from .markiza import (
     MarkizaPageIE,
 )
 from .massengeschmacktv import MassengeschmackTVIE
+from .mastodon import (
+    MastodonIE,
+    MastodonUserIE,
+    MastodonUserNumericIE,
+)
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -796,6 +801,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .misskey import MisskeyIE, MisskeyUserIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
 from .mixch import MixchIE
@@ -1066,6 +1072,8 @@ from .pearvideo import PearVideoIE
 from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
+    PeerTubeChannelIE,
+    PeerTubeAccountIE,
 )
 from .peertv import PeerTVIE
 from .peloton import (

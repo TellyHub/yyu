@@ -288,6 +288,21 @@ def parseOpts(overrideArguments=None):
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
             'See "Differences in default behavior" for details'))
+    general.add_option(
+        '--check-mastodon-instance',
+        action='store_true', dest='check_mastodon_instance',
+        default=False,
+        help='Always perform online checks for Mastodon-like URL')
+    general.add_option(
+        '--check-peertube-instance',
+        action='store_true', dest='check_peertube_instance',
+        default=False,
+        help='Always perform online checks for PeerTube-like URL')
+    general.add_option(
+        '--check-misskey-instance',
+        action='store_true', dest='check_misskey_instance',
+        default=False,
+        help='Always perform online checks for Misskey-like URL')
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(

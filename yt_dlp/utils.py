@@ -2656,6 +2656,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class DummyError(YoutubeDLError):
+    pass
+
+
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
     # Working around python 2 bug (see http://bugs.python.org/issue17849) by limiting
     # expected HTTP responses to meet HTTP/1.0 or later (see also
@@ -6608,3 +6612,14 @@ def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
+
+
+def get_first_group(match, *groups, default=None):
+    for g in groups:
+        try:
+            m = match.group(g)
+            if m:
+                return m
+        except IndexError:
+            continue
+    return default

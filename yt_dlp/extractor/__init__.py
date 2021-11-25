@@ -2,11 +2,16 @@ import os
 
 from ..utils import load_plugins
 
+from typing import TYPE_CHECKING, List, Type
+if TYPE_CHECKING:
+    from .common import SelfHostedInfoExtractor
+
 _LAZY_LOADER = False
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
     try:
         from .lazy_extractors import *
         from .lazy_extractors import _ALL_CLASSES
+        _SELFHOSTED_CLASSES = []
         _LAZY_LOADER = True
     except ImportError:
         pass
@@ -29,6 +34,13 @@ def gen_extractor_classes():
     The order does matter; the first extractor matched is the one handling the URL.
     """
     return _ALL_CLASSES
+
+
+def gen_selfhosted_extractor_classes() -> List[Type['SelfHostedInfoExtractor']]:
+    """
+    Return a list of extractors for self-hosted services.
+    """
+    return _SELFHOSTED_CLASSES
 
 
 def gen_extractors():

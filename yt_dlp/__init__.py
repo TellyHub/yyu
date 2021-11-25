@@ -749,6 +749,9 @@ def _real_main(argv=None):
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         '_warnings': warnings,
         'compat_opts': compat_opts,
+        'check_mastodon_instance': opts.check_mastodon_instance,
+        'check_peertube_instance': opts.check_peertube_instance,
+        'check_misskey_instance': opts.check_misskey_instance,
     }
 
     with YoutubeDL(ydl_opts) as ydl:

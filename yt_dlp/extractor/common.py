@@ -3683,3 +3683,55 @@ class SearchInfoExtractor(InfoExtractor):
     @property
     def SEARCH_KEY(self):
         return self._SEARCH_KEY
+
+
+class SelfHostedInfoExtractor(InfoExtractor):
+    """
+    Base class for Self-hosted extractors.
+
+    Self-hosted extractors are for the services,
+    that cannot be handled by just listing all of their domains.
+    Mostly related to free and open source software,
+    which everyone is allowed to host on their own servers
+    (like PeerTube, Mastodon, Misskey, and lots of others).
+    """
+
+    _SELF_HOSTED = True
+
+    @staticmethod
+    def _is_probe_enabled(ydl: 'YoutubeDL'):
+        """
+        True if user requested probing for the service.
+        There must be corresponding options for each services one-by-one, and this method just return its value.
+        """
+        return False
+
+    @classmethod
+    def _probe_selfhosted_service(cls, ie, url, hostname, webpage=None):
+        """
+        True if it's acceptable URL for the service.
+        Extractors may cache its result whenever possible.
+        """
+        return False
+
+    @classmethod
+    def _probe_webpage(cls, webpage):
+        """
+        Receives a URL and webpage contents, and returns True if suitable for this IE.
+        """
+
+        if webpage is None:
+            # there's nothing to check
+            return False
+
+        if any(p in webpage for p in (cls._SH_VALID_CONTENT_STRINGS or ())):
+            return True
+
+        # no strings? check regexes!
+        if '_SH_CONTENT_REGEXES_RES' not in cls.__dict__:
+            cls._SH_VALID_CONTENT_REGEXES_RES = (re.compile(rgx)
+                                                 for rgx in cls._SH_VALID_CONTENT_REGEXES or ())
+        if not any(rgx.match(webpage) is not None for rgx in cls._SH_VALID_CONTENT_REGEXES_RES):
+            return False
+
+        return True
