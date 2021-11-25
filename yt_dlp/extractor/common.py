@@ -442,6 +442,7 @@ class InfoExtractor(object):
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
     _WORKING = True
+    _SELF_HOSTED = False
 
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
