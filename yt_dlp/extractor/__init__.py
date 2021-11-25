@@ -23,6 +23,9 @@ if not _LAZY_LOADER:
         for name, klass in globals().items()
         if name.endswith('IE') and name != 'GenericIE'
     ]
+    _SELFHOSTED_CLASSES = [
+        ie for ie in _ALL_CLASSES if ie._SELF_HOSTED
+    ]
     _ALL_CLASSES.append(GenericIE)
 
 _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
