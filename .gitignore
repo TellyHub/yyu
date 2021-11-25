@@ -85,6 +85,7 @@ README.txt
 *.zsh
 *.spec
 test/testdata/player-*.js
+yt_dlp/extractor/*/instances.py
 
 # Binary
 /youtube-dl
