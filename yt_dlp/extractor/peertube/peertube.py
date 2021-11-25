@@ -6,7 +6,12 @@ import re
 
 from urllib.parse import urlencode
 
-from .instances import instances
+
+try:
+    from .instances import instances
+except ImportError:
+    instances = ()
+
 from ..common import InfoExtractor, SelfHostedInfoExtractor
 from ...compat import compat_str
 from ...utils import (

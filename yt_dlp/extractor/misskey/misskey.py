@@ -2,10 +2,13 @@
 from __future__ import unicode_literals
 import itertools
 import json
-
 import re
 
-from .instances import instances
+try:
+    from .instances import instances
+except ImportError:
+    instances = ()
+
 from ..common import InfoExtractor, SelfHostedInfoExtractor
 from ...utils import (
     ExtractorError,

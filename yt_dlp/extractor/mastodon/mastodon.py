@@ -5,8 +5,11 @@ import itertools
 import json
 import re
 
+try:
+    from .instances import instances
+except ImportError:
+    instances = ()
 
-from .instances import instances
 from ..common import (
     InfoExtractor,
     SelfHostedInfoExtractor
