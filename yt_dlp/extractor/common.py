@@ -3803,7 +3803,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
             nodeinfo_href = ie._download_json(
                 f'https://{hostname}/.well-known/nodeinfo', hostname,
                 'Downloading instance nodeinfo link', fatal=False)
-            nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'), expected_type=compat_str)
+            nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'))
             if not nodeinfo_url:
                 return False
 

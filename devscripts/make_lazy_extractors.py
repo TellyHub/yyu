@@ -37,7 +37,7 @@ module_contents = [
     *[getsource(getattr(InfoExtractor, k)) for k in CLASS_PROPERTIES],
     '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
     '\nclass LazyLoadSelfHostedExtractor(LazyLoadExtractor):',
-    '    _SELF_HOSTED = True',
+    '    _SELF_HOSTED = True\n',
     *[getsource(getattr(SelfHostedInfoExtractor, k)) for k in SH_CLASS_PROPERTIES]]
 
 for fld in SH_FIELDS:
