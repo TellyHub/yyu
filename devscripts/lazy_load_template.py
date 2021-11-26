@@ -1,7 +1,7 @@
 # coding: utf-8
 import re
 
-from ..utils import bug_reports_message, write_string
+from ..utils import bug_reports_message, write_string, get_first_group, preferredencoding, traverse_obj, SelfHostedInfoExtractor
 
 
 class LazyLoadMetaClass(type):
@@ -16,6 +16,7 @@ class LazyLoadMetaClass(type):
 class LazyLoadExtractor(metaclass=LazyLoadMetaClass):
     _module = None
     _WORKING = True
+    _SELF_HOSTED = False
 
     @classmethod
     def _get_real_class(cls):

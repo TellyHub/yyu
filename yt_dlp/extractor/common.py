@@ -3763,7 +3763,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
         return False
 
     @classmethod
-    def _probe_selfhosted_service(cls, ie: InfoExtractor, url, hostname, webpage=None):
+    def _probe_selfhosted_service(cls, ie: 'InfoExtractor', url, hostname, webpage=None):
         """
         True if it's acceptable URL for the service.
         Results are cached whenever possible.
@@ -3771,7 +3771,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
         prefix = ie._search_regex(
             cls._VALID_URL,
             url, f'{cls._SOFTWARE_NAME.lower()} test', group='prefix', default=None)
-        return cls._test_selfhosted_instance(ie, hostname, False, prefix, webpage=None)
+        return cls._test_selfhosted_instance(ie, hostname, False, prefix, webpage)
 
     @classmethod
     def _probe_webpage(cls, webpage):
@@ -3796,7 +3796,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
         return True
 
     @staticmethod
-    def _fetch_nodeinfo_software(ie: InfoExtractor, hostname: compat_str):
+    def _fetch_nodeinfo_software(ie: 'InfoExtractor', hostname: 'compat_str'):
         if hostname in SelfHostedInfoExtractor._NODEINFO_CACHE:
             nodeinfo = SelfHostedInfoExtractor._NODEINFO_CACHE[hostname]
         else:

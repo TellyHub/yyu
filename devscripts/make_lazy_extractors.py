@@ -20,7 +20,7 @@ if os.path.exists(plugins_dirname):
     os.rename(plugins_dirname, plugins_blocked_dirname)
 
 from yt_dlp.extractor import _ALL_CLASSES
-from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor, SelfHostedInfoExtractor
 
 if os.path.exists(plugins_blocked_dirname):
     os.rename(plugins_blocked_dirname, plugins_dirname)
@@ -29,10 +29,23 @@ with open('devscripts/lazy_load_template.py', 'rt') as f:
     module_template = f.read()
 
 CLASS_PROPERTIES = ['ie_key', 'working', '_match_valid_url', 'suitable', '_match_id', 'get_temp_id']
+SH_CLASS_PROPERTIES = ['suitable', '_test_selfhosted_instance', '_is_probe_enabled', '_probe_selfhosted_service', '_probe_webpage', '_fetch_nodeinfo_software']
+SH_FIELDS = ('_IMPOSSIBLE_HOSTNAMES', '_PREFIX_GROUPS', '_HOSTNAME_GROUPS', '_INSTANCE_LIST', '_DYNAMIC_INSTANCE_LIST', '_NODEINFO_SOFTWARE', '_SOFTWARE_NAME')
 module_contents = [
     module_template,
     *[getsource(getattr(InfoExtractor, k)) for k in CLASS_PROPERTIES],
-    '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n']
+    '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
+    '\nclass LazyLoadSelfHostedExtractor(LazyLoadExtractor):',
+    '    _SELF_HOSTED = True',
+    *[getsource(getattr(SelfHostedInfoExtractor, k)) for k in SH_CLASS_PROPERTIES],]
+
+for fld in SH_FIELDS:
+    value = getattr(SelfHostedInfoExtractor, fld, None)
+    if value is None:
+        continue
+    module_contents.append(f'    {fld} = {value!r}')
+
+module_contents.append('')
 
 ie_template = '''
 class {name}({bases}):
@@ -51,6 +64,8 @@ def get_base_name(base):
         return 'LazyLoadExtractor'
     elif base is SearchInfoExtractor:
         return 'LazyLoadSearchExtractor'
+    elif base is SelfHostedInfoExtractor:
+        return 'LazyLoadSelfHostedExtractor'
     else:
         return base.__name__
 
@@ -67,6 +82,12 @@ def build_lazy_ie(ie, name):
         s += '    _WORKING = False\n'
     if ie.suitable.__func__ is not InfoExtractor.suitable.__func__:
         s += f'\n{getsource(ie.suitable)}'
+    if getattr(ie, '_SELF_HOSTED', False):
+        for fld in SH_FIELDS:
+            value = ie.__dict__.get(fld)
+            if value is None:
+                continue
+            s += f'    {fld} = {value!r}\n'
     if hasattr(ie, '_make_valid_url'):
         # search extractors
         s += make_valid_template.format(valid_url=ie._make_valid_url())
@@ -79,7 +100,7 @@ classes = _ALL_CLASSES[:-1]
 ordered_cls = []
 while classes:
     for c in classes[:]:
-        bases = set(c.__bases__) - set((object, InfoExtractor, SearchInfoExtractor))
+        bases = set(c.__bases__) - set((object, InfoExtractor, SearchInfoExtractor, SelfHostedInfoExtractor))
         stop = False
         for b in bases:
             if b not in classes and b not in ordered_cls:
@@ -107,6 +128,7 @@ module_contents.append(
     '\n_ALL_CLASSES = [{0}]'.format(', '.join(names)))
 
 module_src = '\n'.join(module_contents) + '\n'
+module_src = module_src.replace('SelfHostedInfoExtractor.', 'LazyLoadSelfHostedExtractor.')
 
 with io.open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
     f.write(module_src)
