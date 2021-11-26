@@ -2522,6 +2522,7 @@ class GenericIE(InfoExtractor):
             return self.url_result(self.http_scheme() + url)
 
         parsed_url = compat_urlparse.urlparse(url)
+        host = parsed_url.netloc
         if not parsed_url.scheme:
             default_search = self.get_param('default_search')
             if default_search is None:
