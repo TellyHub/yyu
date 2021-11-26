@@ -14,6 +14,10 @@ import re
 import sys
 import time
 import math
+import typing
+
+if typing.TYPE_CHECKING:
+    from ..YoutubeDL import YoutubeDL
 
 from ..compat import (
     compat_cookiejar_Cookie,
@@ -3697,6 +3701,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     (like PeerTube, Mastodon, Misskey, and lots of others).
     """
 
+    _NODEINFO_CACHE = {}
     _SELF_HOSTED = True
 
     @staticmethod
@@ -3736,3 +3741,19 @@ class SelfHostedInfoExtractor(InfoExtractor):
             return False
 
         return True
+
+    @staticmethod
+    def _fetch_nodeinfo_software(ie: InfoExtractor, hostname: compat_str):
+        if hostname in SelfHostedInfoExtractor._NODEINFO_CACHE:
+            nodeinfo = SelfHostedInfoExtractor._NODEINFO_CACHE[hostname]
+        else:
+            nodeinfo_href = ie._download_json(
+                f'https://{hostname}/.well-known/nodeinfo', hostname,
+                'Downloading instance nodeinfo link', fatal=False)
+            nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'), expected_type=compat_str)
+            if not nodeinfo_url:
+                return False
+
+            nodeinfo = ie._download_json(nodeinfo_url, hostname, 'Downloading instance nodeinfo')
+
+        return traverse_obj(nodeinfo, ('software', 'name'))

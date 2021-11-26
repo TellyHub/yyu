@@ -8,7 +8,7 @@ import re
 try:
     from .instances import instances
 except ImportError:
-    instances = ()
+    instances = ('gab.com', )
 
 from ..common import (
     InfoExtractor,
@@ -36,7 +36,7 @@ from ...compat import (
 )
 
 
-known_valid_instances, known_failed_instances = set(), set()
+known_valid_instances = set()
 
 
 class MastodonBaseIE(SelfHostedInfoExtractor):
@@ -74,10 +74,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
             return True
         if hostname in known_valid_instances:
             return True
-        if hostname in known_failed_instances:
-            return False
 
-        # HELP: more cases needed
         if hostname in ['medium.com', 'lbry.tv']:
             return False
 
@@ -91,30 +88,12 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
 
         ie.report_warning('Testing if %s is a Mastodon instance because it is not listed in either instances.social, joinmastodon.org, the-federation.info or fediverse.observer.' % hostname)
 
-        if not cls._probe_webpage(webpage):
-            try:
-                # try /api/v1/instance
-                api_request_instance = ie._download_json(
-                    'https://%s/api/v1/instance' % hostname, hostname,
-                    note='Testing Mastodon API /api/v1/instance')
-                if api_request_instance.get('uri') != hostname:
-                    raise DummyError()
-                if not api_request_instance.get('title'):
-                    raise DummyError()
+        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) in ('mastodon', 'pleroma', 'gab'):
+            # this is probably mastodon instance
+            known_valid_instances.add(hostname)
+            return True
 
-                # try /api/v1/directory
-                api_request_directory = ie._download_json(
-                    'https://%s/api/v1/directory' % hostname, hostname,
-                    note='Testing Mastodon API /api/v1/directory')
-                if not isinstance(api_request_directory, (tuple, list)):
-                    raise DummyError()
-            except (IOError, ExtractorError):
-                known_failed_instances.add(hostname)
-                return False
-
-        # this is probably mastodon instance
-        known_valid_instances.add(hostname)
-        return True
+        return False
 
     def _login(self):
         username, password = self._get_login_info()

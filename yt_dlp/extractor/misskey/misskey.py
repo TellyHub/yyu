@@ -24,7 +24,7 @@ from ...utils import (
 from ...compat import compat_str
 
 
-known_valid_instances, known_failed_instances = set(), set()
+known_valid_instances = set()
 
 
 class MisskeyBaseIE(SelfHostedInfoExtractor):
@@ -52,8 +52,6 @@ class MisskeyBaseIE(SelfHostedInfoExtractor):
             return True
         if hostname in known_valid_instances:
             return True
-        if hostname in known_failed_instances:
-            return False
 
         # continue anyway if "misskey:" is added to URL
         if prefix:
@@ -65,23 +63,12 @@ class MisskeyBaseIE(SelfHostedInfoExtractor):
 
         ie.report_warning('Testing if %s is a Misskey instance because it is not listed in join.misskey.page.' % hostname)
 
-        if not cls._probe_webpage(webpage):
-            try:
-                # try /api/stats
-                api_request_stats = ie._download_json(
-                    'https://%s/api/stats' % hostname, hostname,
-                    note='Testing Misskey API /api/stats', data=b'{}')
-                if not isinstance(api_request_stats.get('usersCount'), int):
-                    return False
-                if not isinstance(api_request_stats.get('instances'), int):
-                    return False
-            except (IOError, ExtractorError):
-                known_failed_instances.add(hostname)
-                return False
+        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) != 'misskey':
+            # this is probably misskey instance
+            known_valid_instances.add(hostname)
+            return True
 
-        # this is probably misskey instance
-        known_valid_instances.add(hostname)
-        return True
+        return False
 
     @staticmethod
     def _is_probe_enabled(ydl):

@@ -29,7 +29,7 @@ from ...utils import (
 )
 
 
-known_valid_instances, known_failed_instances = set(), set()
+known_valid_instances = set()
 
 
 class PeerTubeBaseIE(SelfHostedInfoExtractor):
@@ -102,8 +102,6 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
             return True
         if hostname in known_valid_instances:
             return True
-        if hostname in known_failed_instances:
-            return False
 
         # continue anyway if "peertube:" is used
         if prefix:
@@ -115,28 +113,13 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
 
         ie.report_warning('Testing if %s is a PeerTube instance because it is not listed in either joinpeertube.org, the-federation.info or fediverse.observer.' % hostname)
 
-        if not cls._probe_webpage(webpage):
-            try:
-                # try /api/v1/config
-                api_request_config = ie._download_json(
-                    'https://%s/api/v1/config' % hostname, hostname,
-                    note='Testing PeerTube API /api/v1/config')
-                if not api_request_config.get('instance', {}).get('name'):
-                    return False
+        
+        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) == 'peertube':
+            # this is probably peertube instance
+            known_valid_instances.add(hostname)
+            return True
 
-                # try /api/v1/videos
-                api_request_videos = ie._download_json(
-                    'https://%s/api/v1/videos' % hostname, hostname,
-                    note='Testing PeerTube API /api/v1/videos')
-                if not isinstance(api_request_videos.get('data'), (tuple, list)):
-                    return False
-            except (IOError, ExtractorError):
-                known_failed_instances.add(hostname)
-                return False
-
-        # this is probably peertube instance
-        known_valid_instances.add(hostname)
-        return True
+        return False
 
     @staticmethod
     def _is_probe_enabled(ydl):
