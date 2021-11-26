@@ -58,6 +58,7 @@ from ..utils import (
     format_field,
     GeoRestrictedError,
     GeoUtils,
+    get_first_group,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -73,6 +74,7 @@ from ..utils import (
     parse_m3u8_attributes,
     parse_resolution,
     RegexNotFoundError,
+    preferredencoding,
     sanitize_filename,
     sanitized_Request,
     str_or_none,
@@ -3704,6 +3706,54 @@ class SelfHostedInfoExtractor(InfoExtractor):
     _NODEINFO_CACHE = {}
     _SELF_HOSTED = True
 
+    _IMPOSSIBLE_HOSTNAMES = ()
+    _PREFIX_GROUPS = ('prefix', )
+    _HOSTNAME_GROUPS = ()
+    _INSTANCE_LIST = ()
+    _DYNAMIC_INSTANCE_LIST = ()
+    _NODEINFO_SOFTWARE = ()
+    _SOFTWARE_NAME = 'self-hosted'
+
+    @classmethod
+    def suitable(cls, url):
+        mobj = cls._match_valid_url(url)
+        if not mobj:
+            return False
+        prefix = get_first_group(mobj, *cls._PREFIX_GROUPS)
+        hostname = get_first_group(mobj, *cls._HOSTNAME_GROUPS)
+        return cls._test_selfhosted_instance(None, hostname, True, prefix)
+
+    @classmethod
+    def _test_selfhosted_instance(cls, ie, hostname, skip, prefix, webpage=None):
+        if isinstance(hostname, bytes):
+            hostname = hostname.decode(preferredencoding())
+        hostname = hostname.encode('idna').decode('utf-8')
+
+        if hostname in cls._INSTANCE_LIST:
+            return True
+        if hostname in cls._DYNAMIC_INSTANCE_LIST:
+            return True
+
+        if hostname in cls._IMPOSSIBLE_HOSTNAMES:
+            return False
+
+        # continue anyway if something like "mastodon:" is added to URL
+        if prefix:
+            return True
+        # without proper flag,
+        #   skip further instance check
+        if skip:
+            return False
+
+        ie.report_warning(f'Testing if {hostname} is a {cls._SOFTWARE_NAME} instance because it is not listed in internal instance list.')
+
+        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) in cls._NODEINFO_SOFTWARE:
+            # this is probably acceptable instance
+            cls._DYNAMIC_INSTANCE_LIST.add(hostname)
+            return True
+
+        return False
+
     @staticmethod
     def _is_probe_enabled(ydl: 'YoutubeDL'):
         """
@@ -3713,12 +3763,15 @@ class SelfHostedInfoExtractor(InfoExtractor):
         return False
 
     @classmethod
-    def _probe_selfhosted_service(cls, ie, url, hostname, webpage=None):
+    def _probe_selfhosted_service(cls, ie: InfoExtractor, url, hostname, webpage=None):
         """
         True if it's acceptable URL for the service.
-        Extractors may cache its result whenever possible.
+        Results are cached whenever possible.
         """
-        return False
+        prefix = ie._search_regex(
+            cls._VALID_URL,
+            url, f'{cls._SOFTWARE_NAME.lower()} test', group='prefix', default=None)
+        return cls._test_selfhosted_instance(ie, hostname, False, prefix, webpage=None)
 
     @classmethod
     def _probe_webpage(cls, webpage):

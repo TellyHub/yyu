@@ -9,12 +9,11 @@ try:
 except ImportError:
     instances = ()
 
-from ..common import InfoExtractor, SelfHostedInfoExtractor
+from ..common import SelfHostedInfoExtractor
 from ...utils import (
     ExtractorError,
     determine_ext,
     mimetype2ext,
-    preferredencoding,
     smuggle_url,
     traverse_obj,
     unified_timestamp,
@@ -34,53 +33,15 @@ class MisskeyBaseIE(SelfHostedInfoExtractor):
         '<!-- If you are reading this message... how about joining the development of Misskey? -->',
     )
 
-    @classmethod
-    def suitable(cls, url):
-        mobj = cls._match_valid_url(url)
-        if not mobj:
-            return False
-        prefix, hostname = mobj.group('prefix', 'instance')
-        return cls._test_misskey_instance(None, hostname, True, prefix)
-
-    @classmethod
-    def _test_misskey_instance(cls, ie, hostname, skip, prefix, webpage=None):
-        if isinstance(hostname, bytes):
-            hostname = hostname.decode(preferredencoding())
-        hostname = hostname.encode('idna').decode('utf-8')
-
-        if hostname in instances:
-            return True
-        if hostname in known_valid_instances:
-            return True
-
-        # continue anyway if "misskey:" is added to URL
-        if prefix:
-            return True
-        # without --check-misskey-instance,
-        #   skip further instance check
-        if skip:
-            return False
-
-        ie.report_warning('Testing if %s is a Misskey instance because it is not listed in join.misskey.page.' % hostname)
-
-        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) != 'misskey':
-            # this is probably misskey instance
-            known_valid_instances.add(hostname)
-            return True
-
-        return False
+    _HOSTNAME_GROUPS = ('instance', )
+    _INSTANCE_LIST = instances
+    _DYNAMIC_INSTANCE_LIST = known_valid_instances
+    _NODEINFO_SOFTWARE = ('misskey', )
+    _SOFTWARE_NAME = 'Misskey'
 
     @staticmethod
     def _is_probe_enabled(ydl):
         return ydl.params.get('check_misskey_instance', False)
-
-    @classmethod
-    def _probe_selfhosted_service(cls, ie: InfoExtractor, url, hostname, webpage=None):
-        prefix = ie._search_regex(
-            # (MisskeyIE._VALID_URL, MisskeyUserIE._VALID_URL),
-            cls._VALID_URL,
-            url, 'misskey test', group='prefix', default=None)
-        return cls._test_misskey_instance(ie, hostname, False, prefix, webpage)
 
 
 class MisskeyIE(MisskeyBaseIE):
