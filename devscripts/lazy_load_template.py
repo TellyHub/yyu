@@ -1,7 +1,7 @@
 # coding: utf-8
 import re
 
-from ..utils import bug_reports_message, write_string, get_first_group, preferredencoding, traverse_obj, SelfHostedInfoExtractor
+from ..utils import bug_reports_message, write_string, get_first_group, preferredencoding, traverse_obj
 
 
 class LazyLoadMetaClass(type):

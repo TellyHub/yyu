@@ -4,6 +4,7 @@ from __future__ import unicode_literals, print_function
 from inspect import getsource
 import io
 import os
+import re
 from os.path import dirname as dirn
 import sys
 
@@ -37,7 +38,7 @@ module_contents = [
     '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
     '\nclass LazyLoadSelfHostedExtractor(LazyLoadExtractor):',
     '    _SELF_HOSTED = True',
-    *[getsource(getattr(SelfHostedInfoExtractor, k)) for k in SH_CLASS_PROPERTIES],]
+    *[getsource(getattr(SelfHostedInfoExtractor, k)) for k in SH_CLASS_PROPERTIES]]
 
 for fld in SH_FIELDS:
     value = getattr(SelfHostedInfoExtractor, fld, None)
@@ -129,6 +130,7 @@ module_contents.append(
 
 module_src = '\n'.join(module_contents) + '\n'
 module_src = module_src.replace('SelfHostedInfoExtractor.', 'LazyLoadSelfHostedExtractor.')
+module_src = re.sub(r": '[^']+'", '', module_src)
 
 with io.open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
     f.write(module_src)
