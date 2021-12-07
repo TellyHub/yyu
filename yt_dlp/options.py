@@ -259,6 +259,16 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
     general.add_option(
+        '--wait-for-video',
+        dest='wait_for_video', metavar='MIN[-MAX]', default=None,
+        help=(
+            'Wait for scheduled streams to become available. '
+            'Pass the minimum number of seconds (or range) to wait between retries'))
+    general.add_option(
+        '--no-wait-for-video',
+        dest='wait_for_video', action='store_const', const=None,
+        help='Do not wait for scheduled streams (default)')
+    general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
         help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
@@ -383,10 +393,6 @@ def parseOpts(overrideArguments=None):
         dest='rejecttitle', metavar='REGEX',
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--max-downloads',
-        dest='max_downloads', metavar='NUMBER', type=int, default=None,
-        help='Abort after downloading NUMBER files')
-    selection.add_option(
         '--min-filesize',
         metavar='SIZE', dest='min_filesize', default=None,
         help='Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)')
@@ -457,6 +463,14 @@ def parseOpts(overrideArguments=None):
         dest='download_archive',
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
+        '--no-download-archive',
+        dest='download_archive', action="store_const", const=None,
+        help='Do not use archive file (default)')
+    selection.add_option(
+        '--max-downloads',
+        dest='max_downloads', metavar='NUMBER', type=int, default=None,
+        help='Abort after downloading NUMBER files')
+    selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
@@ -465,13 +479,17 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='break_on_reject', default=False,
         help='Stop the download process when encountering a file that has been filtered out')
     selection.add_option(
+        '--break-per-input',
+        action='store_true', dest='break_per_url', default=False,
+        help='Make --break-on-existing and --break-on-reject act only on the current input URL')
+    selection.add_option(
+        '--no-break-per-input',
+        action='store_false', dest='break_per_url',
+        help='--break-on-existing and --break-on-reject terminates the entire download queue')
+    selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
         help='Number of allowed failures until the rest of the playlist is skipped')
-    selection.add_option(
-        '--no-download-archive',
-        dest='download_archive', action="store_const", const=None,
-        help='Do not use archive file (default)')
     selection.add_option(
         '--include-ads',
         dest='include_ads', action='store_true',
@@ -1151,7 +1169,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--cookies',
         dest='cookiefile', metavar='FILE',
-        help='File to read cookies from and dump cookie jar in')
+        help='Netscape formatted file to read cookies from and dump cookie jar in')
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
@@ -1184,7 +1202,10 @@ def parseOpts(overrideArguments=None):
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Options')
     thumbnail.add_option(
         '--write-thumbnail',
-        action='store_true', dest='writethumbnail', default=False,
+        action='callback', dest='writethumbnail', default=False,
+        # Should override --no-write-thumbnail, but not --write-all-thumbnail
+        callback=lambda option, _, __, parser: setattr(
+            parser.values, option.dest, getattr(parser.values, option.dest) or True),
         help='Write thumbnail image to disk')
     thumbnail.add_option(
         '--no-write-thumbnail',
@@ -1192,7 +1213,7 @@ def parseOpts(overrideArguments=None):
         help='Do not write thumbnail image to disk (default)')
     thumbnail.add_option(
         '--write-all-thumbnails',
-        action='store_true', dest='write_all_thumbnails', default=False,
+        action='store_const', dest='writethumbnail', const='all',
         help='Write all thumbnail image formats to disk')
     thumbnail.add_option(
         '--list-thumbnails',
@@ -1351,7 +1372,7 @@ def parseOpts(overrideArguments=None):
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
             'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists'))
+            'force (try fixing even if file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
@@ -1616,6 +1637,9 @@ def parseOpts(overrideArguments=None):
                     current_path = os.path.join(path, '%s.conf' % package)
                     config = _readOptions(current_path, default=None)
                 if config is not None:
+                    current_path = os.path.realpath(current_path)
+                    if current_path in paths.values():
+                        return False
                     configs[name], paths[name] = config, current_path
                     return parser.parse_args(config)[0].ignoreconfig
             return False

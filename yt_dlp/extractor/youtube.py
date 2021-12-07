@@ -2514,7 +2514,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             query = parse_qs(fmt_url)
             throttled = False
-            if query.get('ratebypass') != ['yes'] and query.get('n'):
+            if query.get('n'):
                 try:
                     fmt_url = update_url_query(fmt_url, {
                         'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
@@ -4545,7 +4545,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     _TESTS = []
 
 
-class YoutubeSearchDateIE(SearchInfoExtractor, YoutubeTabBaseInfoExtractor):
+class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
     IE_DESC = 'YouTube search, newest videos first'

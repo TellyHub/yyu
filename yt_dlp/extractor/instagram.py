@@ -63,6 +63,10 @@ class InstagramBaseIE(InfoExtractor):
         if not login.get('authenticated'):
             if login.get('message'):
                 raise ExtractorError(f'Unable to login: {login["message"]}')
+            elif login.get('user'):
+                raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
+            elif login.get('user') is False:
+                raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
             raise ExtractorError('Unable to login')
         InstagramBaseIE._IS_LOGGED_IN = True
 
@@ -495,7 +499,7 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
 
 class InstagramTagIE(InstagramPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/explore/tags/(?P<id>[^/]+)'
-    IE_DESC = 'Instagram hashtag search'
+    IE_DESC = 'Instagram hashtag search URLs'
     IE_NAME = 'instagram:tag'
     _TESTS = [{
         'url': 'https://instagram.com/explore/tags/lolcats',
