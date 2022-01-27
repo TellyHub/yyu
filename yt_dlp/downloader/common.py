@@ -72,11 +72,11 @@ class FileDownloader(ShowsProgress):
 
     def __init__(self, ydl, params):
         """Create a FileDownloader object with the given options."""
+        ShowsProgress.__init__(self, ydl, params)
         self.ydl = ydl
         self._progress_hooks = []
         self.params = params
-        self._prepare_multiline_status()
-        self.add_progress_hook(self.report_progress)
+        self._enable_progress()
 
     def to_screen(self, *args, **kargs):
         self.ydl.to_stdout(*args, quiet=self.params.get('quiet'), **kargs)
