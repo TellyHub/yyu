@@ -5156,6 +5156,12 @@ def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
+def to_str(value):
+    if isinstance(value, bytes):
+        value = value.decode(preferredencoding())
+    return value
+
+
 # create a JSON Web Signature (jws) with HS256 algorithm
 # the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
