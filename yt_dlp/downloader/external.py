@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import time
+import signal
 
 from .fragment import FragmentFD
 from ..compat import (
@@ -12,6 +13,7 @@ from ..compat import (
     compat_str,
 )
 from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
+from ..postprocessor._attachments import RunsFFmpeg
 from ..utils import (
     cli_option,
     cli_valueless_option,
@@ -317,7 +319,7 @@ class HttpieFD(ExternalFD):
         return cmd
 
 
-class FFmpegFD(ExternalFD):
+class FFmpegFD(ExternalFD, RunsFFmpeg):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
     can_download_to_stdout = True
 
@@ -358,7 +360,8 @@ class FFmpegFD(ExternalFD):
             if self.params.get(log_level, False):
                 args += ['-loglevel', log_level]
                 break
-        if not self.params.get('verbose'):
+        verbose = self.params.get('verbose')
+        if not verbose:
             args += ['-hide_banner']
 
         args += info_dict.get('_ffmpeg_args', [])
@@ -479,15 +482,39 @@ class FFmpegFD(ExternalFD):
 
         args += self._configuration_args(('_o1', '_o', ''))
 
+        use_native_progress = (
+            self.params.get('enable_ffmpeg_native_progress')
+            and not verbose
+            and not live
+            and url not in ('-', 'pipe:'))
+
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
+        if use_native_progress:
+            args.extend(['-progress', 'pipe:1'])
         self._debug_cmd(args)
 
-        proc = Popen(args, stdin=subprocess.PIPE, env=env)
+        if use_native_progress:
+            proc = Popen(
+                args, env=env, universal_newlines=True,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        else:
+            proc = Popen(args, stdin=subprocess.PIPE, env=env)
+
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:
-            retval = proc.wait()
+            retval = -1
+            if use_native_progress:
+                try:
+                    retval = self.read_ffmpeg_status(info_dict, proc, False)
+                except KeyboardInterrupt:
+                    # forward SIGINT and get return value
+                    proc.send_signal(signal.SIGINT.value)
+                    retval = proc.wait()
+                    raise
+            else:
+                retval = proc.wait()
         except BaseException as e:
             # subprocces.run would send the SIGKILL signal to ffmpeg and the
             # mp4 file couldn't be played, but if we ask ffmpeg to quit it
