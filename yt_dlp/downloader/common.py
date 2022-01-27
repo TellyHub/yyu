@@ -1,7 +1,6 @@
 from __future__ import division, unicode_literals
 
 import os
-import re
 import time
 import random
 import errno
@@ -10,17 +9,9 @@ from ..utils import (
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
-    format_bytes,
     sanitize_open,
     shell_quote,
     timeconvert,
-    timetuple_from_msec,
-)
-from ..minicurses import (
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
-    BreaklineStatusPrinter
 )
 from ..postprocessor._attachments import ShowsProgress
 
