@@ -2204,6 +2204,9 @@ class locked_file(object):
     def close(self, *args):
         self.__exit__(self, *args, value=False, traceback=False)
 
+    def fileno(self):
+        return self.f.fileno()
+
 
 def get_filesystem_encoding():
     encoding = sys.getfilesystemencoding()

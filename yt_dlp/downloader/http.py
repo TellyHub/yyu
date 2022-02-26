@@ -282,7 +282,7 @@ class HttpFD(FileDownloader):
                 try:
                     ctx.stream.write(data_block)
                     print('length to write:', len(data_block))
-                    print('file size after write:', os.stat(ctx.stream).st_size)
+                    print('file size after write:', os.stat(ctx.stream.fileno()).st_size)
                 except (IOError, OSError) as err:
                     self.to_stderr('\n')
                     self.report_error('unable to write data: %s' % str(err))
