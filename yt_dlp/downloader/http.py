@@ -104,6 +104,7 @@ class HttpFD(FileDownloader):
                 range_end = ctx.data_len - 1
             has_range = range_start is not None
             ctx.has_range = has_range
+            print('headers:', headers)
             request = sanitized_Request(url, request_data, headers)
             if has_range:
                 set_range(request, range_start, range_end)
@@ -138,6 +139,7 @@ class HttpFD(FileDownloader):
                                     # its part is promised to be served
                                     or content_range_end == range_end
                                     or content_len < range_end)
+                                print('content-range', content_range)
                                 if accept_content_len:
                                     ctx.data_len = content_len
                                     return
@@ -279,6 +281,8 @@ class HttpFD(FileDownloader):
 
                 try:
                     ctx.stream.write(data_block)
+                    print('length to write:', len(data_block))
+                    print('file size after write:', os.stat(ctx.stream).st_size)
                 except (IOError, OSError) as err:
                     self.to_stderr('\n')
                     self.report_error('unable to write data: %s' % str(err))
