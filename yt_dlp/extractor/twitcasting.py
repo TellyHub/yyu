@@ -184,19 +184,30 @@ class TwitCastingIE(InfoExtractor):
                 'formats': formats
             }
         else:
-            infodict = {
-                '_type': 'multi_video',
-                'entries': [{
-                    'id': f'{video_id}-{num}',
-                    'url': m3u8_url,
-                    'ext': 'mp4',
-                    # Requesting the manifests here will cause download to fail.
-                    # So use ffmpeg instead. See: https://github.com/yt-dlp/yt-dlp/issues/382
-                    'protocol': 'm3u8',
-                    'http_headers': self._M3U8_HEADERS,
-                    **base_dict,
-                } for (num, m3u8_url) in enumerate(m3u8_urls)],
-            }
+            if len(m3u8_urls) == 1:
+                # It's fine to request manifest if there's only one URL to download
+                # (#382 doesn't apply)
+                fmt = self._extract_m3u8_formats(
+                    m3u8_urls[0], video_id, ext='mp4',
+                    headers=self._M3U8_HEADERS)
+                self._sort_formats(fmt)
+                infodict = {
+                    'formats': fmt,
+                }
+            else:
+                infodict = {
+                    '_type': 'multi_video',
+                    'entries': [{
+                        'id': f'{video_id}-{num}',
+                        'url': m3u8_url,
+                        'ext': 'mp4',
+                        # Requesting the manifests here will cause download to fail.
+                        # So use ffmpeg instead. See: https://github.com/yt-dlp/yt-dlp/issues/382
+                        'protocol': 'm3u8',
+                        'http_headers': self._M3U8_HEADERS,
+                        **base_dict,
+                    } for (num, m3u8_url) in enumerate(m3u8_urls)],
+                }
 
         return {
             'id': video_id,
